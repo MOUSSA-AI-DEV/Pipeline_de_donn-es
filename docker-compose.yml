@@ -9,9 +9,13 @@ x-airflow-common: &airflow-common
   environment:
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
 
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
+    PYTHONPATH: /opt/airflow
 
-    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: >-
+      postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
+
+    AIRFLOW__CELERY__RESULT_BACKEND: >-
+      db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${AIRFLOW_DB}
 
     AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
 
@@ -21,11 +25,18 @@ x-airflow-common: &airflow-common
 
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
 
-    AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+    AIRFLOW__API__AUTH_BACKENDS: >-
+      airflow.api.auth.backend.basic_auth,
+      airflow.api.auth.backend.session
 
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
 
- 
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    POSTGRES_DB: youtube_dw
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
   volumes:
     - ./dags:/opt/airflow/dags
     - ./data:/opt/airflow/data
@@ -33,17 +44,12 @@ x-airflow-common: &airflow-common
     - airflow-logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
 
-    # volumes:
-    # - ./dags:/opt/airflow/dags
-    # - ./src:/opt/airflow/src
-    # - ./data:/opt/airflow/data
-
   depends_on:
     postgres:
       condition: service_healthy
-
     redis:
       condition: service_healthy
+
 
 services:
 
@@ -93,7 +99,6 @@ services:
 
   airflow-init:
     <<: *airflow-common
-
     container_name: airflow-init
 
     entrypoint: /bin/bash
@@ -115,7 +120,6 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-
     container_name: airflow-webserver
 
     command: webserver
@@ -126,10 +130,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
       redis:
         condition: service_healthy
-
       airflow-init:
         condition: service_completed_successfully
 
@@ -138,7 +140,6 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
-
     container_name: airflow-scheduler
 
     command: scheduler
@@ -146,10 +147,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
       redis:
         condition: service_healthy
-
       airflow-init:
         condition: service_completed_successfully
 
@@ -158,7 +157,6 @@ services:
 
   airflow-worker:
     <<: *airflow-common
-
     container_name: airflow-worker
 
     command: celery worker
@@ -166,10 +164,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
       redis:
         condition: service_healthy
-
       airflow-init:
         condition: service_completed_successfully
 
